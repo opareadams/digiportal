@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 "use strict";
 
 var express = require("express");
@@ -13,8 +14,7 @@ app.use(jsonParser());
 var mongoose = require("mongoose");
 
 mongoose.connect(
- // "mongodb://digiportal-admin:digiportal-admin1234@ds211588.mlab.com:11588/digiportal-dev"
-//    "mongodb://opareadams:maersk3@ds227858.mlab.com:27858/digiportal"
+
 "mongodb://@localhost:27017/digiportal"
 );
 
@@ -34,7 +34,7 @@ app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header(
     "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Typ, Accepte"
+    "Origin,Authorization, X-Requested-With, Content-Type, Accept"
   );
   if (req.method == "OPTIONS") {
     res.header("Access-Control-Allow-Methods", "PUT, POST, DELETE");
