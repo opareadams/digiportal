@@ -1,0 +1,28 @@
+/*
+    //send email to approver for approval
+    var jsonBody = JSON.stringify(req.body);
+    var objectValue = JSON.parse(jsonBody); 
+    
+    //get firstname from email and capitalize first letter
+    var email = objectValue['email'];
+    var fname = email.substr(0, email.indexOf('.'));
+    var firstName = fname.charAt(0).toUpperCase() + fname.slice(1);
+
+    //getting project title and summary from form
+    var approversArray=form.approvers;
+    var projectTitle= form.bsaOverview[0].projectTitle;
+    var projectSummary = form.bsaOverview[0].projectSummary;
+
+    var approvalLink='http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+approversArray[0]._id+'/approve-yes';
+    var disapprovalLink = 'http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+approversArray[0]._id+'/approve-no';
+
+    sendEmail.dispatch(1,email,firstName,approvalLink,disapprovalLink,projectTitle,projectSummary);
+
+
+    //--
+    //send email to requester after sending request
+    var email2 = form.owner;
+    var fname2 = email2.substr(0, email2.indexOf('.'));
+    var firstName2 = fname2.charAt(0).toUpperCase() + fname2.slice(1);
+    sendEmail.dispatch(2,email2,firstName2,approvalLink,disapprovalLink,projectTitle,projectSummary);
+*/

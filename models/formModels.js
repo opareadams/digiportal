@@ -36,10 +36,14 @@ ApproverSchema.method("update", function(updates, callback) {
 
 ApproverSchema.method("approve", function(approve, callback) {
   if (approve === "yes" && this.approval < 1) {
-    this.approval += 1;
-  } else if (approve === "no" && this.approval > 0) {
-    this.approval -= 1;
+    this.approval = 1;
+  } else if (approve === "no" && this.approval > 0) { //meaning already approved but wants to disapprove
+    this.approval = 2;
   }
+  else if (approve === "no" && this.approval < 1) { //meaning it was pending and but want to disapprove
+    this.approval = 2;
+  }
+  
   this.parent().save(callback);
 });
 
@@ -71,6 +75,19 @@ BsaOverviewSchema.method("update", function(updates, callback) {
 //All fields required for creating a BSA form
 var BsaDetailsSchema = new Schema(
   {
+    financials:
+		{
+			costCentre:String,
+			inBudget:String,
+			budgetLineCode:String,
+			budgetLineTitle:String,
+			totalBudget:String,
+			allocToPriorProjects:String,
+			remainingBudget:String,
+			totalOpexGHS:String,
+			totalOpexInvoice:String,
+			customsDuty:String
+		},
     details:[
       {
       department: String,
@@ -92,7 +109,35 @@ var BsaDetailsSchema = new Schema(
       projectRole: String,
       fte: String
       }],
-    summarizedFinancialImpact: String,
+
+      files:[
+        {
+          filePath:String,
+          fileName:String
+        },
+        {
+          filePath:String,
+          fileName:String
+        },
+        {
+          filePath:String,
+          fileName:String
+        },
+        {
+          filePath:String,
+          fileName:String
+        },
+        {
+          filePath:String,
+          fileName:String
+        },
+        {
+          filePath:String,
+          fileName:String
+        }
+        
+      ],
+
     deliverables:[
       {
         description: String,
@@ -114,41 +159,15 @@ var BsaDetailsSchema = new Schema(
         description:String,
         targetDate:String
       }],
-    gatesAndMilestones:[
+    milestones:[
       {
-        milestones:String,
-        description:String,
-        targetDate:String
-      },
-      {
-        milestones:String,
-        description:String,
-        targetDate:String
-      },
-      {
-        milestones:String,
-        description:String,
-        targetDate:String
-      },
-      {
-        milestones:String,
-        description:String,
-        targetDate:String
-      },
-      {
-        milestones:String,
-        description:String,
-        targetDate:String
-      },
-      {
-        milestones:String,
-        description:String,
-        targetDate:String
-      },
-      {
-        milestones:String,
-        description:String,
-        targetDate:String
+        gate0:String,
+        gate1:String,
+        gate2:String,
+        gate3:String,
+        gate4:String,
+        gate5:String,
+        gate6:String        
       }]
   }
 );
@@ -163,6 +182,9 @@ BsaDetailsSchema.method("update", function(updates, callback) {
 var FormSchema = new Schema({
   title: String,
   type: String,
+  category: String,
+  approvalStatus:String,
+  submitStatus:String,
   createdAt: { type: Date, default: Date.now },
   approvers: [ApproverSchema],
   owner: String,

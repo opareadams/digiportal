@@ -1,24 +1,26 @@
 var nodemailer = require('nodemailer');
 
 var transporter =  nodemailer.createTransport({
-   
-    host: '00.00.00.00',
-    port: 25,
+    
+  //  host: '145.230.101.26',
+    host: 'appsmtp-north.internal.vodafone.com',
+    port: 25, // port for secure SMTP
     secure: false, // true for 465, false for other ports
     requireTLS: true, //Force TLS
     tls: {
         rejectUnauthorized: false
+        //cipher:'SSLv3'
     },
  // service: 'gmail',
   auth: {
-     user: 'xxxx',
-     pass: 'xxxx'
+     user: 'GHSVC.BRP',
+     pass: 'Vod@f0ne001*'
   }
 });
 
 var mailOptions = {
-   from: 'xxxx@vodafone.com',
-   to: 'xxx@vodafone.com',
+   from: 'BusinessRequests.gh@vodafone.com',
+   to: 'opare.adams1@vodafone.com',
   subject: 'Sending Email using Node.js',
   text:  'That was easy!'
 };

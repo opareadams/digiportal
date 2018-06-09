@@ -181,22 +181,42 @@ router.put("/:fID/bsaDetails/:dID", function(req, res) {
 // POST /forms/:fID/approver
 // Route for creating an approver
 router.post("/:fID/approvers", function(req, res, next) {
-
-//  console.log(req.body);
-//  console.log(req.body.length);
-  for(var i=0;i<req.body.length;i++){
-
-   // console.log(req.body[i]);
-
-  req.form.approvers.push(req.body[i]);
+  req.form.approvers.push(req.body);
   req.form.save(function(err, form) {
-   // if (err) return next(err);
+    if (err) return next(err);
+/*
+    //send email to approver for approval
+    var jsonBody = JSON.stringify(req.body);
+    var objectValue = JSON.parse(jsonBody); 
+    
+    //get firstname from email and capitalize first letter
+    var email = objectValue['email'];
+    var fname = email.substr(0, email.indexOf('.'));
+    var firstName = fname.charAt(0).toUpperCase() + fname.slice(1);
+
+    //getting project title and summary from form
+    var approversArray=form.approvers;
+    var projectTitle= form.bsaOverview[0].projectTitle;
+    var projectSummary = form.bsaOverview[0].projectSummary;
+
+    var approvalLink='http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+approversArray[0]._id+'/approve-yes';
+    var disapprovalLink = 'http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+approversArray[0]._id+'/approve-no';
+
+    sendEmail.dispatch(1,email,firstName,approvalLink,disapprovalLink,projectTitle,projectSummary);
+
+
+    //--
+    //send email to requester after sending request
+    var email2 = form.owner;
+    var fname2 = email2.substr(0, email2.indexOf('.'));
+    var firstName2 = fname2.charAt(0).toUpperCase() + fname2.slice(1);
+    sendEmail.dispatch(2,email2,firstName2,approvalLink,disapprovalLink,projectTitle,projectSummary);
+*/
+
    // console.log(firstName)  //this helped me track down the approval_id of an approver
     res.status(201);
     res.json(form);
   });
-}
-
 });
 
 // PUT /forms/:fID/approvers/:aID
@@ -206,34 +226,6 @@ router.put("/:fID/approvers/:aID", function(req, res) {
     if (err) return next(err);
     res.json(result);
   });
-});
-
-
-//Delete all approver array not working
-router.delete("/:fID/deleteApprovers", function(req, res) {
-
-var count=0;
-console.log("Expected number of loops is "+req.form.approvers.length);
-
-for(var j=0;j<req.form.approvers.length;j++){
-
-  if(count=req.form.approvers.length ){
-    break;
-  }
-    for(var i=0;i<req.form.approvers.length;i++){
-      req.form.approvers[i].remove(function(err) {
-        req.form.save(function(err, form) {
-          if (err) return next(err);
-          res.json(form);
-        });
-      });
-    
-      count++;
-    }
-}
-
-console.log("the loop run "+count+" times");
-
 });
 
 // DELETE /forms/:fID/approvers/:aID
@@ -247,29 +239,10 @@ router.delete("/:fID/approvers/:aID", function(req, res) {
   });
 });
 
-
-
-// PUT /forms/:fID/editApprovers
-// Edit a the entire approver array
-router.put("/:fID/editApprovers", function(req, res) {
-
-  for(var i=0;i<req.form.approvers.length;i++){ //for the size of approvers is the array
- req.form.approvers[i].update(req.body[i], function(err, result) {
-     // if (err) return next(err);
-     // console.log(err);
-      //console.log("error occured at ");
-      res.json(result);
-  });
-}
-
-});
-
-
-
 // GET /forms/:qID/approvers/:aID/approve-yes
 // GET /forms/:qID/approvers/:aID/approve-no
 // Approve by a specific approver
-router.post(
+router.get(
   "/:fID/approvers/:aID/approve-:answer",
   function(req, res, next) {
     if (req.params.answer.search(/^(yes|no)$/) === -1) {
@@ -285,129 +258,24 @@ router.post(
     req.approver.approve(req.approve, function(err, form) {
       if (err) return next(err);
 
-      console.log(req.body.reason); //reason for disapproval
-      var approverRejectReason=req.body.reason;
+      console.log(req.params.aID);
 
       var approvalStatus;
-      var projectTitle= form.title;
+      var projectTitle= form.bsaOverview[0].projectTitle;
       var projectSummary = form.bsaOverview[0].projectSummary;
 
       if(req.approve === 'yes'){
         approvalStatus="approved";
       }
       else{
-            approvalStatus="disapproved";
-
-            //as one person person approves, set the approvalStatus of the form to disapporoved
-            var submitStatus={
-              "approvalStatus": "disapproved"
-            };
-            req.form.update(submitStatus, function(err, result) {
-              // if (err) return next(err);
-              // console.log(err);
-              //console.log("error occured at ");
-        
-            //   res.status(201);
-            //   res.json(result);
-          });
+        approvalStatus="disapproved";
       }
 
         //send email to requester after approval has been made
       var email2 = form.owner;
       var fname2 = email2.substr(0, email2.indexOf('.'));
       var firstName2 = fname2.charAt(0).toUpperCase() + fname2.slice(1);
-      sendEmail.dispatch(3,email2,firstName2,approvalStatus,approverRejectReason,projectTitle,projectSummary);
-
-
-
-
-      //Process to Check if all levels of this approval level have approved and send form to next level
-      ///////////////////////////////////////////////////////////////////////////////////////
-     
-      // console.log("requester's approval ID ="+req.params.aID);
-      
-
-      var objectValue = JSON.stringify(req.form); //getting form from request, we use req.form
-      var jsonBody = JSON.parse(objectValue);  //objectValue holds the response of the form
-   
-      var approverObject = jsonBody.approvers.find(obj => obj._id === req.params.aID); //how to find object with ID
-      console.log("Requester's approval level ="+approverObject.level);
-
-
-      var nummberOfLevelXapprovers=0;
-      var nextLevel=parseInt(approverObject.level)+1;
-
-      console.log("Number of approvers ="+jsonBody.approvers.length);
-
-      for(var i=0;i<jsonBody.approvers.length;i++){ //counting number of level X approvers where x is the level of the approver
-         if(jsonBody.approvers[i].level ===approverObject.level){
-          nummberOfLevelXapprovers++;
-         }
-      }
-
-      console.log("Number of level "+approverObject.level+" approvers is "+nummberOfLevelXapprovers);
-
-      var count=0;
-      for(var i=0;i<jsonBody.approvers.length;i++){ //check to see if approval in the approver array is 1 and is by a level x approver and count
-          if(jsonBody.approvers[i].approval==1 && jsonBody.approvers[i].level===approverObject.level ){
-            count++;
-          }
-      }
-
-      console.log("Total number of yes approvals is ="+count);
-
-      if(count==nummberOfLevelXapprovers){ //if the count of yes approvals matches the number of level x approvers, send form to higher level
-        
-        if(nextLevel==3){ //if the current level is level 3 which is the final level and per above, they have all approved, change approval status
-          var submitStatus={
-            "approvalStatus": "approved"
-          };
-          req.form.update(submitStatus, function(err, result) {
-            // if (err) return next(err);
-            // console.log(err);
-            //console.log("error occured at ");
-      
-          //   res.status(201);
-          //   res.json(result);
-        });
-        }
-
-
-        console.log("emails will be sent to level "+nextLevel);
-        count=0;//re-initialize count
-
-        //Below must send email to level X+1 approvers
-            for(var i=0;i<jsonBody.approvers.length;i++){   
-        
-              //    console.log("Approval status ="+ jsonBody.approvers[i].approval);
-            
-          
-                  if(jsonBody.approvers[i].level===nextLevel.toString()){ //if the level of the approver is = the next level
-                      //get firstname from email and capitalize first letter
-                        var email = jsonBody.approvers[i].email; 
-                        
-                        var fname = email.substr(0, email.indexOf('.'));
-                        var firstName = fname.charAt(0).toUpperCase() + fname.slice(1);
-            
-                        console.log("Sending emails to "+jsonBody.approvers[i].email);
-            
-                       var approvalLink='http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+jsonBody.approvers[i]._id+'/approve-yes';
-                        var disapprovalLink = 'http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+jsonBody.approvers[i]._id+'/approve-no';
-
-                        
-                        sendEmail.dispatch(1,email,firstName,approvalLink,disapprovalLink,projectTitle,projectSummary);
-                          }
-            
-                }
-
-
-      }
-      else{
-        
-        console.log("Not all level "+approverObject.level+" have approved yet. Email wont be sent to level "+nextLevel);
-      }
-
-
+      sendEmail.dispatch(3,email2,firstName2,approvalStatus,"",projectTitle,projectSummary);
 
       res.json(form);
     });
@@ -457,34 +325,32 @@ router.post("/authentication", function(req, res, next) {
 router.get("/submitForm/:fID", function(req, res, next) {
 
 
-    //send email to approver for approval 
-    var objectValue = JSON.stringify(req.form); //getting form from request, we use req.form
+    //send email to approver for approval
+    var objectValue = JSON.stringify(req.form);
     var jsonBody = JSON.parse(objectValue);  //objectValue holds the response of the form
     
    //getting project title and summary from form
    var approversArray=jsonBody.approvers;
-   var projectTitle= jsonBody.title;
+   var projectTitle= jsonBody.bsaOverview[0].projectTitle;
    var projectSummary = jsonBody.bsaOverview[0].projectSummary;
     
 //loop the size of the approvers array and fire emails to each email address of the approvers
-    for(var i=0;i<jsonBody.approvers.length;i++){    
-     
-   
+    for(var i=0;i<jsonBody.approvers.length;i++){ 
+      console.log(jsonBody.approvers[i].email);
 
-      if(jsonBody.approvers[i].level==="1"){ //if the level of the approver is 1
           //get firstname from email and capitalize first letter
-            var email = jsonBody.approvers[i].email; 
-            
-            var fname = email.substr(0, email.indexOf('.'));
-            var firstName = fname.charAt(0).toUpperCase() + fname.slice(1);
+    var email = jsonBody.approvers[i].email; 
+    
+    var fname = email.substr(0, email.indexOf('.'));
+    var firstName = fname.charAt(0).toUpperCase() + fname.slice(1);
 
-            console.log("Sending emails to "+jsonBody.approvers[i].email);
+    
 
-            var approvalLink='http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+approversArray[i]._id+'/approve-yes';
-            var disapprovalLink = 'http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+approversArray[i]._id+'/approve-no';
+    var approvalLink='http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+approversArray[i]._id+'/approve-yes';
+    var disapprovalLink = 'http://10.233.217.228:3000/forms/'+req.params.fID+'/approvers/'+approversArray[i]._id+'/approve-no';
 
-            sendEmail.dispatch(1,email,firstName,approvalLink,disapprovalLink,projectTitle,projectSummary);
-              }
+    sendEmail.dispatch(1,email,firstName,approvalLink,disapprovalLink,projectTitle,projectSummary);
+
 
     }
    
@@ -494,22 +360,6 @@ router.get("/submitForm/:fID", function(req, res, next) {
     var fname2 = email2.substr(0, email2.indexOf('.'));
     var firstName2 = fname2.charAt(0).toUpperCase() + fname2.slice(1);
     sendEmail.dispatch(2,email2,firstName2,approvalLink,disapprovalLink,projectTitle,projectSummary);
-
-    
-    
-    //edit submit status from unsubmitted to submitted
-    var submitStatus={
-      "submitStatus": "submitted"
-    };
-    req.form.update(submitStatus, function(err, result) {
-      // if (err) return next(err);
-      // console.log(err);
-       //console.log("error occured at ");
-
-    //   res.status(201);
-    //   res.json(result);
-   });
-
 
 
   //  console.log(firstName)  //this helped me track down the approval_id of an approver
